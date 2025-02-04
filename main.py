@@ -27,7 +27,7 @@ class Laser:
     def __init__(self):
         self.x = 0  # Start from the left
         self.y = HEIGHT // 2
-        self.speed = 1
+        self.speed = 0.2
         self.width = 10
         self.height = HEIGHT  # Full height laser
 
@@ -142,12 +142,16 @@ while running:
         if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE:
                         print("Spacebar pressed!")
-                        springs[2].update_length(25*math.sqrt(2))    # Mouse interaction
-                        points[3].update_mass(50)
+                        springs[2].update_length(40)    # Mouse interaction
+                        points[3].update_mass(10)
+                        springs[38].update_length(40)    # Mouse interaction
+                        points[15].update_mass(10)
 
                     if event.key == pygame.K_e:
                         springs[2].update_length(20)
-                        points[3].update_mass(10)
+                        points[3].update_mass(100)
+                        springs[38].update_length(20)
+                        points[15].update_mass(100)
 
     mouse_x, mouse_y = pygame.mouse.get_pos()
     left, _, _ = pygame.mouse.get_pressed()
@@ -176,7 +180,7 @@ while running:
     for point in points:
         point.update()
         point.draw()
-    points[3].draw_blue()
+    points[15].draw_blue()
 
     laser.update()
     laser.draw()
