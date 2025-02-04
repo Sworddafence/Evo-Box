@@ -23,6 +23,28 @@ pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 
+class Laser:
+    def __init__(self):
+        self.x = 0  # Start from the left
+        self.y = HEIGHT // 2
+        self.speed = 1
+        self.width = 10
+        self.height = HEIGHT  # Full height laser
+
+    def update(self):
+        self.x += self.speed  # Move right
+
+    def draw(self):
+        pygame.draw.rect(screen, RED, (self.x, 0, self.width, HEIGHT))
+
+    def check_collision(self, points):
+        for point in points:
+            if self.x <= point.x <= self.x + self.width:
+                return True  # Collision detected
+        return False
+
+
+
 class Point:
     def __init__(self, x, y, mass):
         self.x = x
@@ -102,6 +124,8 @@ def create_softbody_grid(x, y, cols, rows, spacing):
 # Create a softbody grid
 points, springs = create_softbody_grid(300, 100, 4, 4, 20)
 
+laser = Laser()
+
 # Fix the top row of points
 for point in points[:10]:
     point.fixed = False
@@ -117,19 +141,13 @@ while running:
 
         if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE:
-                        # Perform an action when spacebar is pressed
                         print("Spacebar pressed!")
-                        # Example: Apply a force to a)
                         springs[2].update_length(25*math.sqrt(2))    # Mouse interaction
                         points[3].update_mass(50)
-                        springs[0].update_length(25*math.sqrt(2))    # Mouse interaction
-                        points[0].update_mass(50)
+
                     if event.key == pygame.K_e:
                         springs[2].update_length(20)
                         points[3].update_mass(10)
-                        springs[0].update_length(20)
-                        points[0].update_mass(10)
-                        print("????")
 
     mouse_x, mouse_y = pygame.mouse.get_pos()
     left, _, _ = pygame.mouse.get_pressed()
@@ -159,6 +177,15 @@ while running:
         point.update()
         point.draw()
     points[3].draw_blue()
+
+    laser.update()
+    laser.draw()
+
+    # Check for collision and destroy the soft body
+    if laser.check_collision(points):
+        points.clear()
+        springs.clear()
+
     pygame.display.flip()
     clock.tick(FPS)
 
