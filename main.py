@@ -6,7 +6,7 @@ import random
 WIDTH, HEIGHT = 800, 600
 FPS = 60
 GRAVITY = 0
-SPRING_CONSTANT = 0.5
+SPRING_CONSTANT = 0.1
 DAMPING = 0.99
 POINT_MASS = 1
 MOUSE_RADIUS = 50
@@ -42,10 +42,11 @@ class Point:
         pygame.draw.circle(screen, RED, (int(self.x), int(self.y)), 5)
 
 class Spring:
-    def __init__(self, p1, p2, length):
+    def __init__(self, p1, p2, length, diagonal=False):
         self.p1 = p1
         self.p2 = p2
         self.length = length
+        self.diagonal = diagonal
 
     def update(self):
         dx = self.p2.x - self.p1.x
@@ -62,11 +63,17 @@ class Spring:
         if not self.p2.fixed:
             self.p2.vx -= fx / POINT_MASS
             self.p2.vy -= fy / POINT_MASS
-
+    
+    def update_length(self, n):
+        self.length = n
+        return
+    
 def create_softbody_grid(x, y, cols, rows, spacing):
     points = []
     springs = []
 
+
+        
     for i in range(rows):
         for j in range(cols):
             point = Point(x + j * spacing, y + i * spacing)
@@ -76,6 +83,9 @@ def create_softbody_grid(x, y, cols, rows, spacing):
                 springs.append(Spring(points[-1], points[-2], spacing))
             if i > 0:
                 springs.append(Spring(points[-1], points[-cols - 1], spacing))
+            if i > 0 and j > 0:
+                springs.append(Spring(points[-1], points[-cols - 2], math.sqrt(2) * spacing, True))
+                springs.append(Spring(points[-2], points[-cols - 1], math.sqrt(2) * spacing, True))
 
     return points, springs
 
@@ -95,7 +105,13 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    # Mouse interaction
+        if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        # Perform an action when spacebar is pressed
+                        print("Spacebar pressed!")
+                        # Example: Apply a force to a)
+                        springs[2].update_length(25*math.sqrt(2))    # Mouse interaction
+
     mouse_x, mouse_y = pygame.mouse.get_pos()
     left, _, _ = pygame.mouse.get_pressed()
 
@@ -113,7 +129,10 @@ while running:
     # Update points and springs
     for spring in springs:
         spring.update()
-
+        #if(spring.diagonal):
+        #    spring.update_length(21)
+        #else:
+        #    spring.update_length(2*math.sqrt(2)
     for point in points:
         point.update()
         point.draw()
