@@ -6,16 +6,17 @@ import random
 WIDTH, HEIGHT = 800, 600
 FPS = 60
 GRAVITY = 0
-SPRING_CONSTANT = 0.1
-DAMPING = 0.99
-POINT_MASS = 1
+SPRING_CONSTANT = 0.3
+DAMPING = 0.9
+POINT_MASS = 10
 MOUSE_RADIUS = 50
-MOUSE_STRENGTH = 1
+MOUSE_STRENGTH = 0.1
 
 # Colors
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
+BLUE = (0,0,255)
 
 # Pygame initialization
 pygame.init()
@@ -23,12 +24,13 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 
 class Point:
-    def __init__(self, x, y):
+    def __init__(self, x, y, mass):
         self.x = x
         self.y = y
         self.vx = 0
         self.vy = 0
         self.fixed = False
+        self.mass = mass
 
     def update(self):
         if not self.fixed:
@@ -40,6 +42,12 @@ class Point:
 
     def draw(self):
         pygame.draw.circle(screen, RED, (int(self.x), int(self.y)), 5)
+    
+    def draw_blue(self):
+        pygame.draw.circle(screen, BLUE, (int(self.x), int(self.y)), 5)
+
+    def update_mass(self, mass):
+        self.mass = mass
 
 class Spring:
     def __init__(self, p1, p2, length, diagonal=False):
@@ -58,15 +66,17 @@ class Spring:
         fy = math.sin(angle) * force
 
         if not self.p1.fixed:
-            self.p1.vx += fx / POINT_MASS
-            self.p1.vy += fy / POINT_MASS
+            self.p1.vx += fx / self.p1.mass 
+            self.p1.vy += fy / self.p1.mass
         if not self.p2.fixed:
-            self.p2.vx -= fx / POINT_MASS
-            self.p2.vy -= fy / POINT_MASS
+            self.p2.vx -= fx / self.p2.mass
+            self.p2.vy -= fy / self.p2.mass
     
     def update_length(self, n):
         self.length = n
         return
+    def draw(self):
+        pygame.draw.line(screen, BLACK, (int(self.p1.x), int(self.p1.y)), (int(self.p2.x), int(self.p2.y)), 1)
     
 def create_softbody_grid(x, y, cols, rows, spacing):
     points = []
@@ -76,7 +86,7 @@ def create_softbody_grid(x, y, cols, rows, spacing):
         
     for i in range(rows):
         for j in range(cols):
-            point = Point(x + j * spacing, y + i * spacing)
+            point = Point(x + j * spacing, y + i * spacing, POINT_MASS)
             points.append(point)
 
             if j > 0:
@@ -111,6 +121,15 @@ while running:
                         print("Spacebar pressed!")
                         # Example: Apply a force to a)
                         springs[2].update_length(25*math.sqrt(2))    # Mouse interaction
+                        points[3].update_mass(50)
+                        springs[0].update_length(25*math.sqrt(2))    # Mouse interaction
+                        points[0].update_mass(50)
+                    if event.key == pygame.K_e:
+                        springs[2].update_length(20)
+                        points[3].update_mass(10)
+                        springs[0].update_length(20)
+                        points[0].update_mass(10)
+                        print("????")
 
     mouse_x, mouse_y = pygame.mouse.get_pos()
     left, _, _ = pygame.mouse.get_pressed()
@@ -133,10 +152,13 @@ while running:
         #    spring.update_length(21)
         #else:
         #    spring.update_length(2*math.sqrt(2)
+        spring.draw()
+
+
     for point in points:
         point.update()
         point.draw()
-
+    points[3].draw_blue()
     pygame.display.flip()
     clock.tick(FPS)
 
