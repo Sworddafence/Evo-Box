@@ -1,16 +1,23 @@
 import pygame
 import math
 import random
+import numpy as np
+from box import Box
 
+
+#BOX
+TRAIT_COUNT = 80
+LENGTH_STATE = 60
 # Constants
 WIDTH, HEIGHT = 800, 600
 FPS = 60
 GRAVITY = 0
 SPRING_CONSTANT = 0.3
 DAMPING = 0.9
-POINT_MASS = 10
+POINT_MASS = 20
 MOUSE_RADIUS = 50
 MOUSE_STRENGTH = 0.1
+SPACING = 20
 
 # Colors
 WHITE = (255, 255, 255)
@@ -42,8 +49,6 @@ class Laser:
             if self.x <= point.x <= self.x + self.width:
                 return True  # Collision detected
         return False
-
-
 
 class Point:
     def __init__(self, x, y, mass):
@@ -97,14 +102,13 @@ class Spring:
     def update_length(self, n):
         self.length = n
         return
+    
     def draw(self):
         pygame.draw.line(screen, BLACK, (int(self.p1.x), int(self.p1.y)), (int(self.p2.x), int(self.p2.y)), 1)
     
 def create_softbody_grid(x, y, cols, rows, spacing):
     points = []
     springs = []
-
-
         
     for i in range(rows):
         for j in range(cols):
@@ -121,40 +125,70 @@ def create_softbody_grid(x, y, cols, rows, spacing):
 
     return points, springs
 
-# Create a softbody grid
-points, springs = create_softbody_grid(300, 100, 4, 4, 20)
+def createNewCreature():
+    dna = np.clip(np.random.normal(0.0, 5.0, TRAIT_COUNT),-20,20)
+    return Box(dna)
+#MAIN START
 
+
+points, springs = create_softbody_grid(300, 100, 4, 4, SPACING)
 laser = Laser()
-
-# Fix the top row of points
-for point in points[:10]:
-    point.fixed = False
-
-# Main loop
 running = True
-while running:
-    screen.fill(WHITE)
 
+
+tempcreature = createNewCreature()
+print(tempcreature.dna)
+
+
+
+frames = 0
+state = False
+while running:
+    frames += 1
+    screen.fill(WHITE)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-
         if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_SPACE:
-                        print("Spacebar pressed!")
-                        springs[2].update_length(40)    # Mouse interaction
-                        points[3].update_mass(10)
-                        springs[38].update_length(40)    # Mouse interaction
-                        points[15].update_mass(10)
+            if event.key == pygame.K_SPACE:
+                springs[2].update_length(40)
+                points[3].update_mass(10)
+                springs[38].update_length(-10)
+                points[15].update_mass(10)
+            if event.key == pygame.K_e:
+                springs[2].update_length(20)
+                points[3].update_mass(100)
+                springs[38].update_length(20)
+                points[15].update_mass(100)
 
-                    if event.key == pygame.K_e:
-                        springs[2].update_length(20)
-                        points[3].update_mass(100)
-                        springs[38].update_length(20)
-                        points[15].update_mass(100)
+
+#update the spring values to creature
+    spring_count = 0
+    bumper_val = 0
+    if(state):
+        bumper_val = 0
+    else:
+        bumper_val = 24
+
+    for spring in springs:
+        if (not spring.diagonal):
+            spring.update_length(SPACING + tempcreature.dna[bumper_val+spring_count])
+            spring_count += 1 
+
+    if(state):
+        bumper_val = 48
+    else:
+        bumper_val = 64
+    for i, point in enumerate(points):
+        point.update_mass(POINT_MASS + tempcreature.dna[bumper_val+i])
 
     mouse_x, mouse_y = pygame.mouse.get_pos()
     left, _, _ = pygame.mouse.get_pressed()
+    
+    if(frames % LENGTH_STATE == 0):
+        state = not state
+    
+
 
     for point in points:
         if left:
@@ -167,25 +201,45 @@ while running:
                 point.vx += math.cos(angle) * force
                 point.vy += math.sin(angle) * force
 
-    # Update points and springs
     for spring in springs:
         spring.update()
-        #if(spring.diagonal):
-        #    spring.update_length(21)
-        #else:
-        #    spring.update_length(2*math.sqrt(2)
         spring.draw()
-
 
     for point in points:
         point.update()
+
+    # Prevent points from overlapping
+    n = len(points)
+    for i in range(n):
+        for j in range(i + 1, n):
+            p1 = points[i]
+            p2 = points[j]
+            dx = p2.x - p1.x
+            dy = p2.y - p1.y
+            distance = math.hypot(dx, dy)
+            min_distance = 10  # Minimum distance between points
+            if 0 < distance < min_distance:
+                # Calculate separation vector
+                overlap = (min_distance - distance) / 2
+                angle = math.atan2(dy, dx)
+                nx = math.cos(angle)
+                ny = math.sin(angle)
+                
+                # Move points apart
+                if not p1.fixed:
+                    p1.x -= overlap * nx
+                    p1.y -= overlap * ny
+                if not p2.fixed:
+                    p2.x += overlap * nx
+                    p2.y += overlap * ny
+
+    for point in points:
         point.draw()
     points[15].draw_blue()
 
     laser.update()
     laser.draw()
 
-    # Check for collision and destroy the soft body
     if laser.check_collision(points):
         points.clear()
         springs.clear()
